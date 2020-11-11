@@ -45,18 +45,46 @@ class HelloMethodVisitor(methodVisitor: MethodVisitor, access: Int, name: String
      *       LOCALVARIABLE this LTarget2; L0 L2 0
      *       MAXSTACK = 2
      *       MAXLOCALS = 1
+     * 对应ASM代码：
+     *      mv = cw.visitMethod(ACC_PRIVATE, "testAsm", "()V", null, null);
+     *      {
+     *      av0 = mv.visitAnnotation("LInjectHello;", false);
+     *      av0.visitEnd();
+     *      }
+     *      mv.visitCode();
+     *      Label l0 = new Label();
+     *      mv.visitLabel(l0);
+     *      mv.visitLineNumber(8, l0);
+     *      mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+     *      mv.visitLdcInsn("Hello Asm");
+     *      mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
+     *      Label l1 = new Label();
+     *      mv.visitLabel(l1);
+     *      mv.visitLineNumber(9, l1);
+     *      mv.visitInsn(RETURN);
+     *      Label l2 = new Label();
+     *      mv.visitLabel(l2);
+     *      mv.visitLocalVariable("this", "LTarget2;", null, l0, l2, 0);
+     *      mv.visitMaxs(2, 1);
+     *      mv.visitEnd();
      */
     override fun onMethodEnter() {
         super.onMethodEnter()
         // 此处为方法开头
         if (isInjectHello) {
             println("开始插入代码: [ System.out.println(\"Hello Asm\"); ]")
-            // 对应->GETSTATIC
+            // **********方法1************
+            // 对应->GETSTATIC java/lang/System.out : Ljava/io/PrintStream;
             getStatic(Type.getType("Ljava/lang/System;"), "out", Type.getType("Ljava/io/PrintStream;"))
-            // 对应->LDC
+            // 对应->LDC "Hello Asm"
             visitLdcInsn("Hello Asm")
-            // 对应->INVOKEVIRTUAL
+            // 对应->INVOKEVIRTUAL java/io/PrintStream.println (Ljava/lang/String;)V
             invokeVirtual(Type.getType("Ljava/io/PrintStream;"), Method("println", "(Ljava/lang/String;)V"))
+            // **********方法2************
+            // 直接从ASMified中复制代码，和方法1是等价的:
+            // mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+            // mv.visitLdcInsn("Hello Asm");
+            //mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
         }
     }
 
